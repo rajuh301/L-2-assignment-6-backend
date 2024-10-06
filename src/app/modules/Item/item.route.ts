@@ -8,7 +8,7 @@ import { ItemControllers } from './item.controller';
 import { ItemValidation } from './item.validation';
 import auth from '../../middlewares/auth';
 import { USER_ROLE } from '../User/user.constant';
-import { authMiddleware } from '../../middlewares/middlewire';
+import { authMiddleware } from '../../middlewares/AuthMiddleware/authMiddleware';
 
 const router = express.Router();
 
@@ -39,6 +39,15 @@ router.get('/user/posts', auth(USER_ROLE.USER), ItemControllers.getUserPosts);
 
 router.delete('/:id', auth(USER_ROLE.USER), ItemControllers.deleteItem);
 
+router.post('/:itemId/comments', auth(USER_ROLE.USER), ItemControllers.addComment);
+
+
+
+// Route to like an item
+router.post('/:itemId/like', auth(USER_ROLE.USER), ItemControllers.likeItem);
+
+// Route to dislike an item
+router.post('/:itemId/dislike', auth(USER_ROLE.USER), ItemControllers.dislikeItem);
 
 
 export const ItemRoutes = router;

@@ -29,6 +29,8 @@ const createItem = catchAsync(async (req, res) => {
 const getAllItems = catchAsync(async (req, res) => {
   const item = await ItemServices.getAllItemsFromDB(req.query);
 
+
+
   sendResponse(res, {
     success: true,
     statusCode: httpStatus.OK,
@@ -37,9 +39,6 @@ const getAllItems = catchAsync(async (req, res) => {
   });
 });
 
-// -------------- Get item by user------------
-
-// -------------- Get item by user------------
 
 const getItem = catchAsync(async (req, res) => {
   const itemId = req.params.id;
@@ -78,13 +77,7 @@ const deleteItem = catchAsync(async (req, res) => {
 });
 
 
-// --------------- Comment Section ---------------
-
-
-// --------------- End Comment Section ---------------
-
 // -------------- Get post by user ---------------------
-
 
 const getUserPosts = async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -116,11 +109,81 @@ const getUserPosts = async (req: Request, res: Response, next: NextFunction) => 
 
 
 
+// ------------------- Add comment ------------------
+
+const addComment = async (req: Request, res: Response) => {
+  try {
+    const { itemId } = req.params;
+    const { comment } = req.body;
+    const userId = req.user._id; // Assuming you have user data from JWT middleware
+
+    const updatedItem = await ItemServices.addCommentToItem(itemId, userId, comment);
+
+    res.status(200).json({
+      success: true,
+      data: updatedItem,
+    });
+  } catch (error: any) {
+    res.status(400).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+// ------------------- Add comment ------------------
+
+
+
+// ------------------- Like and dislike-------------------
+const likeItem = async (req: Request, res: Response) => {
+  try {
+    const { itemId } = req.params;
+    const userId = req.user._id; // Assumes user data is available via authentication middleware
+
+    const updatedItem = await ItemServices.likeItem(itemId, userId);
+    res.status(200).json({
+      success: true,
+      data: updatedItem,
+    });
+  } catch (error: any) {
+    res.status(400).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+const dislikeItem = async (req: Request, res: Response) => {
+  try {
+    const { itemId } = req.params;
+    const userId = req.user._id;
+
+    const updatedItem = await ItemServices.dislikeItem(itemId, userId);
+    res.status(200).json({
+      success: true,
+      data: updatedItem,
+    });
+  } catch (error: any) {
+    res.status(400).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+// ------------------- Like and dislike-------------------
+
+
+
+
 export const ItemControllers = {
   createItem,
   getAllItems,
   getItem,
   updateItem,
   deleteItem,
-  getUserPosts
+  getUserPosts,
+  addComment,
+  likeItem,
+  dislikeItem
 };

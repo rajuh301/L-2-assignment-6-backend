@@ -1,3 +1,4 @@
+import { Types } from 'mongoose';
 import { QueryBuilder } from '../../builder/QueryBuilder';
 import { TImageFiles } from '../../interfaces/image.interface';
 import { addDocumentToIndex, deleteDocumentFromIndex } from '../../utils/meilisearch';
@@ -30,7 +31,11 @@ const getAllItemsFromDB = async (query: Record<string, unknown>) => {
   query = (await SearchItemByDateRangeQueryMaker(query)) || query;
 
   const itemQuery = new QueryBuilder(
-    Item.find().populate('user'),
+    Item.find().populate('user')
+      .populate({
+        path: 'comments.user', // Populate user for each comment
+        select: 'name email', // Select fields to return
+      }),
     query
   )
     .filter()
@@ -50,10 +55,6 @@ const getItemFromDB = async (itemId: string) => {
 };
 
 
-// --------------- Get item by User ---------------
-;
-// --------------- Get item by User ---------------
-
 const updateItemInDB = async (itemId: string, payload: TItem) => {
   const result = await Item.findByIdAndUpdate(itemId, payload, { new: true });
   if (result) {
@@ -64,10 +65,6 @@ const updateItemInDB = async (itemId: string, payload: TItem) => {
   return result;
 };
 
-// --------------- Comment -----------
-
-// --------------- Comment -----------
-
 // -------------- Get data by user -----------------
 const getUserItemsFromDB = async (query: Record<string, unknown>, userId?: string) => {
   // If userId is provided, filter by user
@@ -75,22 +72,22 @@ const getUserItemsFromDB = async (query: Record<string, unknown>, userId?: strin
     query.user = userId; // Add user ID to the query
   }
 
-  // Create search queries based on the provided filters
-  query = (await SearchItemByUserQueryMaker(query)) || query; // If applicable, modify query for user search
+
+  query = (await SearchItemByUserQueryMaker(query)) || query;
 
   // Date range search
-  query = (await SearchItemByDateRangeQueryMaker(query)) || query; // Modify query for date range search
+  query = (await SearchItemByDateRangeQueryMaker(query)) || query;
 
   const itemQuery = new QueryBuilder(
-    Item.find().populate('user'), // Ensure to populate user data
+    Item.find().populate('user'),
     query
   )
-    .filter() // Apply additional filters if needed
-    .sort() // Sort based on query parameters
-    .paginate() // Handle pagination
-    .fields(); // Select specific fields if needed
+    .filter()
+    .sort()
+    .paginate()
+    .fields();
 
-  const result = await itemQuery.modelQuery; // Execute the built query
+  const result = await itemQuery.modelQuery;
 
   return result; // Return the result
 };
@@ -106,12 +103,92 @@ const deleteItemFromDB = async (itemId: string) => {
   return result;
 };
 
+
+
+// ---------------------- Add comment --------------
+const addCommentToItem = async (itemId: string, userId: string, commentText: string) => {
+  const item = await Item.findById(itemId);
+
+  if (!item) {
+    throw new Error(`Item with ID ${itemId} not found.`);
+  }
+
+
+  const newComment: IComment = {
+    user: userId,
+    comment: commentText,
+    createdAt: new Date(),
+  };
+
+  item.comments.push(newComment);
+  await item.save();
+  return item; // Return the updated item with comments
+};
+// ---------------------- Add comment --------------
+
+
+// --------------- Add like and deslike ---------
+const likeItem = async (itemId: string, userId: Types.ObjectId) => {
+  const item = await Item.findById(itemId);
+
+  if (!item) {
+    throw new Error('Item not found');
+  }
+
+  const userIndexInLikes = item.likes.findIndex((like) => like.equals(userId));
+  const userIndexInDislikes = item.dislikes.findIndex((dislike) => dislike.equals(userId));
+
+  if (userIndexInLikes === -1) {
+    // Add user to likes array and remove from dislikes (if exists)
+    item.likes.push(userId);
+    if (userIndexInDislikes !== -1) {
+      item.dislikes.splice(userIndexInDislikes, 1);
+    }
+  } else {
+    // Remove the like if already liked
+    item.likes.splice(userIndexInLikes, 1);
+  }
+
+  await item.save();
+  return item.populate('user');
+};
+
+const dislikeItem = async (itemId: string, userId: Types.ObjectId) => {
+  const item = await Item.findById(itemId);
+
+  if (!item) {
+    throw new Error('Item not found');
+  }
+
+  const userIndexInLikes = item.likes.findIndex((like) => like.equals(userId));
+  const userIndexInDislikes = item.dislikes.findIndex((dislike) => dislike.equals(userId));
+
+  if (userIndexInDislikes === -1) {
+    // Add user to dislikes array and remove from likes (if exists)
+    item.dislikes.push(userId);
+    if (userIndexInLikes !== -1) {
+      item.likes.splice(userIndexInLikes, 1);
+    }
+  } else {
+    // Remove the dislike if already disliked
+    item.dislikes.splice(userIndexInDislikes, 1);
+  }
+
+  await item.save();
+  return item.populate('user');
+};
+
+// --------------- Add like  and deslike---------
+
+
 export const ItemServices = {
   createItemIntoDB,
   getAllItemsFromDB,
   getItemFromDB,
   updateItemInDB,
   deleteItemFromDB,
-  getUserItemsFromDB
-
+  getUserItemsFromDB,
+  addCommentToItem,
+  likeItem,
+  dislikeItem
 };

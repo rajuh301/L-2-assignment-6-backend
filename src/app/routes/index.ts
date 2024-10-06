@@ -4,6 +4,7 @@ import { UserRoutes } from '../modules/User/user.route';
 import { MeilisearchRoutes } from '../modules/Meilisearch/meilisearch.routes';
 import { ItemRoutes } from '../modules/Item/item.route';
 
+
 const router = express.Router();
 
 const moduleRoutes = [
@@ -24,7 +25,7 @@ const moduleRoutes = [
 
   {
     path: '/items',
-    route: ItemRoutes ,
+    route: ItemRoutes,
   },
 
 ];
